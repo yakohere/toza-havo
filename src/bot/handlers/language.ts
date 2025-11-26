@@ -21,7 +21,7 @@ export async function handleLanguageSelection(ctx: Context): Promise<void> {
     await ctx.reply(translations.selectLanguage, { reply_markup: keyboard });
   } catch (error) {
     console.error('Error in language selection:', error);
-    await ctx.reply('Please select your language / Tilni tanlang / Выберите язык');
+    await ctx.reply("Tilni tanlang / Выберите язык / Select Language");
   }
 }
 
@@ -30,7 +30,8 @@ export async function handleLanguageCommand(ctx: Context): Promise<void> {
     await handleLanguageSelection(ctx);
   } catch (error) {
     console.error('Error in language command:', error);
-    await ctx.reply('Something went wrong. Please try again.');
+    const translations = await localizationService.getTranslations(ctx.chat?.id || 0);
+    await ctx.reply(translations.somethingWentWrong);
   }
 }
 
@@ -43,14 +44,16 @@ export async function handleLanguageCallback(ctx: Context): Promise<void> {
 
     const chatId = ctx.chat?.id;
     if (!chatId) {
-      await ctx.answerCbQuery('Unable to identify user');
+      const translations = await localizationService.getTranslations(0);
+      await ctx.answerCbQuery(translations.unableToIdentify);
       return;
     }
 
     const langCode = callbackData.replace('lang_', '') as Language;
     
     if (!localizationService.isValidLanguage(langCode)) {
-      await ctx.answerCbQuery('Invalid language selection');
+      const translations = await localizationService.getTranslations(chatId);
+      await ctx.answerCbQuery(translations.somethingWentWrong);
       return;
     }
 
@@ -67,7 +70,8 @@ export async function handleLanguageCallback(ctx: Context): Promise<void> {
 
   } catch (error) {
     console.error('Error in language callback:', error);
-    await ctx.answerCbQuery('Error setting language');
+    const translations = await localizationService.getTranslations(ctx.chat?.id || 0);
+    await ctx.answerCbQuery(translations.somethingWentWrong);
   }
 }
 

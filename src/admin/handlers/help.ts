@@ -6,13 +6,11 @@ export async function handleAdminHelp(ctx: Context): Promise<void> {
       '*Available Commands:*\n\n' +
       '/stats - View comprehensive statistics\n' +
       '/users - View user statistics\n' +
-      '/alerts - View active alerts overview\n' +
       '/help - Show this help message\n\n' +
       '*Features:*\n' +
-      '• Real-time monitoring\n' +
       '• User analytics\n' +
-      '• Alert tracking\n' +
-      '• Activity reports\n\n' +
+      '• Activity reports\n' +
+      '• AQI check tracking\n\n' +
       'Use these commands to monitor and manage the Toza Havo bot.';
 
     await ctx.reply(message, { parse_mode: 'Markdown' });

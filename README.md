@@ -1,19 +1,22 @@
 # Toza Havo - Air Quality Monitoring Bot for Uzbekistan
 
-A production-ready Telegram bot that provides real-time air quality alerts for cities in Uzbekistan. Built with TypeScript, Node.js, and designed for containerized deployment.
+A production-ready Telegram bot that provides real-time air quality information and automatic threshold alerts for cities in Uzbekistan. Built with TypeScript, Node.js, and designed for containerized deployment.
 
 ## 🚀 Features
 
-- **Real-time Air Quality Monitoring**: Track AQI levels for 9 major cities in Uzbekistan
-- **Intelligent Alert System**: Set custom AQI thresholds with automatic direction detection
+- **Real-time Air Quality Data**: Check AQI levels for 9 major cities in Uzbekistan
+- **Automatic Threshold Alerts**: Get notified when AQI crosses critical thresholds (50, 100, 150, 200, 250, 300)
+- **City Subscriptions**: Subscribe to specific cities you care about
+- **Smart Caching System**: 30-minute cache per city to reduce API calls and improve performance
 - **Multi-language Support**: Full support for Uzbek, Russian, and English
-- **Persistent Storage**: PostgreSQL database for reliable data storage
-- **Background Monitoring**: Continuous air quality checking every 10 minutes
+- **Comprehensive Information**: AQI levels, main pollutants, temperature, humidity
 - **Health Recommendations**: Get health implications and recommendations based on AQI levels
+- **Persistent Storage**: PostgreSQL database for caching, subscriptions, and analytics
+- **Background Monitoring**: Automatic threshold checking every 10 minutes
 - **Production Ready**: Docker containerization with health checks
 - **Heroku Deployment**: Ready for cloud deployment with container registry
 - **Admin Dashboard**: Separate admin bot for monitoring and analytics
-- **Analytics Tracking**: Comprehensive user and alert tracking
+- **Analytics Tracking**: Comprehensive user activity tracking
 
 ## 🛠 Tech Stack
 
@@ -104,152 +107,80 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### Manual Docker Build
-
-```bash
-# Build image
-docker build -t toza-havo .
-
-# Run container
-docker run -d \
-  --name toza-havo-bot \
-  -p 8080:8080 \
-  -e BOT_TOKEN="your_bot_token" \
-  -e IQAIR_API_KEY="your_api_key" \
-  -e DATABASE_URL="your_postgres_url" \
-  -e PORT=8080 \
-  toza-havo
-```
-
-## ☁️ Heroku Deployment
-
-### Prerequisites
-
-- Heroku CLI installed
-- Docker installed
-- Heroku account
-
-### Deployment Steps
-
-1. **Login to Heroku**
-   ```bash
-   heroku login
-   ```
-
-2. **Create Heroku App**
-   ```bash
-   heroku create your-app-name
-   ```
-
-3. **Add PostgreSQL Add-on**
-   ```bash
-   heroku addons:create heroku-postgresql:mini -a your-app-name
-   ```
-
-4. **Set Environment Variables**
-   ```bash
-   heroku config:set BOT_TOKEN="your_telegram_bot_token" -a your-app-name
-   heroku config:set IQAIR_API_KEY="your_iqair_api_key" -a your-app-name
-   heroku config:set BOT_TOKEN_ADMIN="your_admin_bot_token" -a your-app-name
-   ```
-
-5. **Enable Container Registry**
-   ```bash
-   heroku container:login
-   ```
-
-6. **Deploy Container**
-   ```bash
-   # Push and release in one command
-   heroku container:push web -a your-app-name
-   heroku container:release web -a your-app-name
-   ```
-
-7. **Verify Deployment**
-   ```bash
-   heroku logs --tail -a your-app-name
-   heroku open -a your-app-name
-   ```
-
-### Alternative: Git-based Deployment
-
-If you prefer Git deployment, ensure `heroku.yml` is in your repository:
-
-```bash
-heroku stack:set container -a your-app-name
-git push heroku main
-```
-
 ## 🤖 Bot Usage
 
 ### User Commands
 
-- `/start` - Initialize the bot and select a city
-- `/my_alerts` - View all your active alerts
-- `/delete_alert` - Remove specific alerts
-- `/aqi` - Check current air quality levels
-- `/help` - Show help menu
-- `/language` - Change language
+- `/start` - Welcome message and available commands
+- `/aqi` - Check current air quality levels for cities
+- `/subscriptions` - Manage your city alert subscriptions
+- `/help` - Show comprehensive help menu
+- `/language` - Change language (Uzbek, Russian, English)
 
 ### Admin Commands (Admin Bot)
 
 - `/stats` - View comprehensive statistics
 - `/users` - View user statistics
-- `/alerts` - View active alerts overview
 - `/help` - Show admin help
 
-### Flow
+### Usage Flow
 
 1. **Start the bot**: Send `/start` command
 2. **Select language**: Choose your preferred language (first time only)
-3. **Select city**: Choose from 9 major cities in Uzbekistan
-4. **View current AQI**: See current air quality and health recommendations
-5. **Set threshold**: Enter your desired AQI threshold
-6. **Receive alerts**: Get notified when AQI reaches your threshold
+3. **Subscribe to cities**: Send `/subscriptions` and tap cities to subscribe
+4. **Get automatic alerts**: Receive notifications when AQI crosses thresholds
+5. **Check current AQI**: Send `/aqi` anytime to check current air quality
 
 ### Example Interaction
 
 ```
 User: /start
-Bot: Tilni tanlang / Выберите язык / Select Language
-     [🇺🇿 O'zbek] [🇷🇺 Русский] [🇺🇸 English]
+Bot: Welcome!
+     
+     Available Commands:
+     
+     /aqi - Check current air quality
+     /subscriptions - Manage city alerts
+     /help - Show this help menu
+     /language - Change language
+     
+     🔔 Subscribe to cities to get automatic notifications when AQI crosses
+     thresholds (50, 100, 150, 200, 250, 300)
 
-User: *clicks English*
-Bot: Welcome! Choose a city to set an air quality alert:
-     [🏛️ Tashkent] [🕌 Samarkand]
-     [🕌 Bukhara] [🏔️ Namangan]
+User: /subscriptions
+Bot: 🔔 Select cities for alerts
+     
+     You'll receive notifications when AQI crosses thresholds
+     (50, 100, 150, 200, 250, 300)
+     
+     Tap cities to subscribe/unsubscribe:
+     [➕ 🏛️ Tashkent] [➕ 🕌 Samarkand]
+     [➕ 🕌 Bukhara] [➕ 🏔️ Namangan]
      ...
 
 User: *clicks Tashkent*
-Bot: You selected: 🏛️ Tashkent
-     
-     Current air quality:
-     AQI level: 85 😐
-     Main pollutant: p2
-     Temperature: 25°C
-     Humidity: 45%
-     
-     Health implication: Air quality is acceptable
-     
-     Send the AQI level at which you want me to notify you.
-     Example: 100
+Bot: Subscribed to 🏛️ Tashkent ✅
 
-User: 100
-Bot: ✅ Alert set! I'll notify you when 🏛️ Tashkent AQI level rises above 100
+*Later when AQI crosses threshold in Tashkent*
+Bot: 🚨 🟠 🏛️ Tashkent
      
-     Current AQI: 85
-
-*Later when AQI hits 100*
-Bot: 🔔 Alert Triggered!
+     Unhealthy for Sensitive Groups
      
-     🟠 🏛️ Tashkent reached AQI 100
-     
-     Current AQI: 102 😷
+     Current AQI: 105 😷
      Main pollutant: p2
      
-     Health implication: Unhealthy for sensitive groups
+     Health implication:
+     Sensitive people may experience health effects
      
-     Recommendation: Sensitive people may experience health effects
+     Recommendation:
+     Reduce prolonged outdoor exertion
+
+User: /aqi
+Bot: 💨 Quick Air Quality Check
+     
+     Select a city to get current air quality:
+     [🏛️ Tashkent] [🕌 Samarkand]
+     ...
 ```
 
 ## 🏗 Project Structure
@@ -260,23 +191,19 @@ src/
 │   ├── handlers/
 │   │   ├── stats.ts         # Statistics handler
 │   │   ├── users.ts         # Users handler
-│   │   ├── alerts.ts        # Alerts handler
 │   │   └── help.ts          # Help handler
 │   └── index.ts             # Admin bot initialization
 ├── bot/                      # User bot functionality
 │   ├── handlers/
 │   │   ├── start.ts         # Start command handler
 │   │   ├── language.ts      # Language selection
-│   │   ├── city.ts          # City selection
-│   │   ├── threshold.ts     # Threshold input
-│   │   ├── myAlerts.ts      # View alerts
-│   │   ├── deleteAlert.ts   # Delete alerts
+│   │   ├── subscriptions.ts # City subscription management
 │   │   ├── aqiCheck.ts      # Check AQI
 │   │   └── help.ts          # Help system
 │   └── index.ts             # Bot initialization
 ├── core/                     # Core services
-│   ├── airQualityChecker.ts # Background monitoring
-│   ├── airQualityFeed.ts    # IQAir API integration
+│   ├── thresholdMonitor.ts  # Threshold monitoring & alerts
+│   ├── airQualityFeed.ts    # IQAir API integration with caching
 │   ├── analyticsService.ts  # Analytics tracking
 │   └── rateLimiter.ts       # Rate limiting
 ├── db/
@@ -301,8 +228,18 @@ src/
 - 🌾 Karshi (Qarshi/Карши)
 - 🏜️ Urgench (Urganch/Ургенч)
 
-## 📊 AQI Levels
+## 📊 AQI Levels & Alert Thresholds
 
+The bot monitors and alerts at these AQI thresholds:
+
+- **50** - Good → Moderate 🟡
+- **100** - Moderate → Unhealthy for Sensitive Groups 🟠
+- **150** - Unhealthy for Sensitive Groups → Unhealthy 🔴
+- **200** - Unhealthy → Very Unhealthy 🟣
+- **250** - Very Unhealthy 🟣
+- **300** - Very Unhealthy → Hazardous 🟤
+
+### AQI Categories:
 - **Good (0-50)**: Air quality is satisfactory 🟢 😊
 - **Moderate (51-100)**: Air quality is acceptable 🟡 😐
 - **Unhealthy for Sensitive Groups (101-150)**: Sensitive groups may experience health effects 🟠 😷
@@ -310,11 +247,59 @@ src/
 - **Very Unhealthy (201-300)**: Health alert 🟣 😱
 - **Hazardous (301+)**: Health warning ☠️ 🟤
 
+## 🔔 How Threshold Alerts Work
+
+1. **Subscribe to Cities**: Use `/subscriptions` to select cities you want to monitor
+2. **Background Monitoring**: Bot checks AQI every 10 minutes for all cities
+3. **Threshold Detection**: When AQI crosses a threshold (e.g., from 95 to 105), the system detects it
+4. **Smart Notifications**: Only sends alerts when crossing thresholds, not on every check
+5. **All Subscribers Notified**: Everyone subscribed to that city receives the alert
+
+### Example Scenarios:
+
+**Scenario 1: AQI Rising**
+- Previous check: AQI 95 (threshold 50)
+- Current check: AQI 105 (threshold 100)
+- ✅ Alert sent: "Tashkent reached Unhealthy for Sensitive Groups"
+
+**Scenario 2: AQI Within Same Range**
+- Previous check: AQI 105 (threshold 100)
+- Current check: AQI 120 (threshold 100)
+- ❌ No alert (still in same threshold range)
+
+**Scenario 3: AQI Crossing Multiple Thresholds**
+- Previous check: AQI 95 (threshold 50)
+- Current check: AQI 155 (threshold 150)
+- ✅ Alert sent: "Reached Unhealthy level"
+
+## 💾 Caching System
+
+The bot implements an intelligent caching system to optimize API usage:
+
+- **Cache Duration**: 30 minutes per city
+- **Automatic Refresh**: Data is automatically fetched when cache expires
+- **Fallback System**: If API fails, uses stale cache (up to 2 hours) as fallback
+- **Efficient Multi-City Requests**: Checks cache first, only fetches missing data
+- **Rate Limit Protection**: Respects IQAir API limits (50 requests/hour on free tier)
+
+### How Caching Works with Alerts
+
+1. Threshold monitor runs every 10 minutes
+2. For each city with subscribers:
+   - Check cache (< 30 minutes old)
+   - If fresh, use cached data ⚡
+   - If stale, fetch from API 🌐
+   - Update cache for 30 minutes 💾
+3. Compare with previous threshold state
+4. Send notifications if threshold crossed
+
+This ensures timely alerts while minimizing API usage.
+
 ## 🔍 Monitoring & Health Checks
 
 ### Health Endpoints
 
-- `GET /` - Application status and checker info
+- `GET /` - Application status, performance metrics, and subscriber count
 - `GET /health` - Simple health check for monitoring
 - `GET /stats` - Comprehensive statistics
 
@@ -339,12 +324,12 @@ npm start
 
 The bot includes comprehensive error handling for:
 
-- **Invalid AQI inputs**: Asks user to retry with correct format
-- **API failures**: Automatic retry with exponential backoff
+- **API failures**: Automatic retry with fallback to stale cache
 - **Database errors**: Self-healing table creation
 - **Telegram API errors**: Retry mechanism for message delivery
 - **Network issues**: Graceful degradation and user notification
 - **Rate limiting**: Automatic caching and rate limit management
+- **Failed notifications**: Logs errors but continues with other subscribers
 
 ## 🔧 Configuration
 
@@ -373,36 +358,21 @@ The bot includes comprehensive error handling for:
    - Verify bot is started with `/start` command
    - Check Heroku logs for errors
 
-2. **Air quality alerts not triggering**
-   - Verify IQAIR_API_KEY is valid
-   - Check API rate limits
-   - Ensure background service is running
+2. **Not receiving alerts**
+   - Make sure you've subscribed to cities using `/subscriptions`
+   - Verify threshold monitor is running (check logs)
+   - Check if AQI is actually crossing thresholds
+   - Ensure Telegram notifications are enabled on your device
 
-3. **Database errors**
+3. **Air quality data not available**
+   - Verify IQAIR_API_KEY is valid
+   - Check API rate limits (50 requests/hour on free tier)
+   - Check if cache is working properly
+
+4. **Database errors**
    - Check PostgreSQL connection
    - Verify DATABASE_URL or POSTGRES_* variables
    - Review database initialization logs
-
-4. **Heroku deployment issues**
-   - Ensure container registry is enabled
-   - Check environment variables are set
-   - Verify Docker build completes successfully
-
-### Debug Commands
-
-```bash
-# Check container status
-docker ps
-
-# View container logs
-docker logs toza-havo-bot
-
-# Connect to running container
-docker exec -it toza-havo-bot sh
-
-# Test health endpoint
-curl http://localhost:8080/health
-```
 
 ## 📝 Development
 
@@ -416,13 +386,14 @@ npm run watch     # Watch mode for development
 npm run clean     # Remove build artifacts
 ```
 
-### Code Style
+### Testing Threshold Alerts Locally
 
-- Follow TypeScript strict mode
-- Use meaningful variable names
-- Add error handling for all async operations
-- Include logging for debugging
-- Write self-documenting code with minimal comments
+1. Subscribe to a city: `/subscriptions`
+2. Manually adjust threshold state in database to test:
+   ```sql
+   UPDATE aqi_threshold_state SET lastThresholdCrossed = 0 WHERE city = 'Tashkent';
+   ```
+3. Wait for next check cycle (10 minutes) or restart bot
 
 ## 📄 License
 
@@ -445,5 +416,4 @@ For issues and questions:
 
 ---
 
-**Toza Havo** - Your reliable air quality monitoring companion for Uzbekistan! 🇺🇿🌍
-
+**Toza Havo** - Stay informed about air quality in Uzbekistan! 🇺🇿🌍

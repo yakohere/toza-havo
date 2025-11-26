@@ -155,9 +155,10 @@ class AirQualityFeedService {
 
   public async getAirQualityForCity(city: UzbekistanCity): Promise<AirQualityData | null> {
     try {
+      // Always check cache first (30 minutes)
       const cached = await airQualityDb.getCachedAirQuality(city, 30);
       if (cached) {
-        console.log(`Using cached air quality data for ${city}`);
+        console.log(`✅ Using cached air quality data for ${city} (age: ${Math.round((Date.now() - new Date(cached.lastupdated).getTime()) / 60000)} minutes)`);
         return {
           city: cached.city,
           country: 'Uzbekistan',
@@ -182,15 +183,52 @@ class AirQualityFeedService {
         };
       }
 
+      console.log(`🌐 Fetching fresh air quality data for ${city} (cache expired or not found)`);
+
       const cityData = UZBEKISTAN_CITIES[city];
       if (!cityData) {
         throw new Error(`Unsupported city: ${city}`);
       }
 
-      return await this.getAirQualityByCoordinates(cityData.lat, cityData.lon);
+      const freshData = await this.getAirQualityByCoordinates(cityData.lat, cityData.lon);
+      
+      if (freshData) {
+        console.log(`💾 Cached fresh data for ${city} (valid for 30 minutes)`);
+      }
+      
+      return freshData;
       
     } catch (error: any) {
       console.error(`Error fetching air quality for ${city}:`, error.message);
+      
+      // If API fails, try to return stale cache (up to 2 hours old) as fallback
+      const staleCache = await airQualityDb.getCachedAirQuality(city, 120);
+      if (staleCache) {
+        console.log(`⚠️ Using stale cache for ${city} due to API error`);
+        return {
+          city: staleCache.city,
+          country: 'Uzbekistan',
+          current: {
+            pollution: {
+              ts: staleCache.lastupdated,
+              aqius: staleCache.aqi,
+              mainus: staleCache.mainpollutant,
+              aqicn: staleCache.aqi,
+              maincn: staleCache.mainpollutant
+            },
+            weather: {
+              ts: staleCache.lastupdated,
+              tp: staleCache.temperature || 0,
+              pr: 1013,
+              hu: staleCache.humidity || 0,
+              ws: 0,
+              wd: 0,
+              ic: '01d'
+            }
+          }
+        };
+      }
+      
       return null;
     }
   }
@@ -198,13 +236,58 @@ class AirQualityFeedService {
   public async getMultipleCities(cities: UzbekistanCity[]): Promise<Map<string, AirQualityData>> {
     const dataMap = new Map<string, AirQualityData>();
     
+    // Check cache for all cities first
+    const cachedCities: string[] = [];
+    const citiesToFetch: UzbekistanCity[] = [];
+    
     for (const city of cities) {
+      const cached = await airQualityDb.getCachedAirQuality(city, 30);
+      if (cached) {
+        cachedCities.push(city);
+        dataMap.set(city, {
+          city: cached.city,
+          country: 'Uzbekistan',
+          current: {
+            pollution: {
+              ts: cached.lastupdated,
+              aqius: cached.aqi,
+              mainus: cached.mainpollutant,
+              aqicn: cached.aqi,
+              maincn: cached.mainpollutant
+            },
+            weather: {
+              ts: cached.lastupdated,
+              tp: cached.temperature || 0,
+              pr: 1013,
+              hu: cached.humidity || 0,
+              ws: 0,
+              wd: 0,
+              ic: '01d'
+            }
+          }
+        });
+      } else {
+        citiesToFetch.push(city);
+      }
+    }
+    
+    console.log(`📦 Using cache for ${cachedCities.length} cities: ${cachedCities.join(', ')}`);
+    
+    if (citiesToFetch.length > 0) {
+      console.log(`🌐 Fetching fresh data for ${citiesToFetch.length} cities: ${citiesToFetch.join(', ')}`);
+    }
+    
+    // Only fetch cities that are not in cache
+    for (const city of citiesToFetch) {
       try {
         const data = await this.getAirQualityForCity(city);
         if (data) {
           dataMap.set(city, data);
         }
-        await this.delay(2000);
+        // Add delay only between API calls
+        if (citiesToFetch.indexOf(city) < citiesToFetch.length - 1) {
+          await this.delay(2000);
+        }
       } catch (error) {
         console.error(`Failed to fetch air quality for ${city}:`, error);
       }

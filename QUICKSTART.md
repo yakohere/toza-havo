@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. Get your bot tokens from [@BotFather](https://t.me/botfather)
+1. Get your bot token from [@BotFather](https://t.me/botfather)
 2. Get IQAir API key from [IQAir](https://www.iqair.com/air-pollution-data-api)
 
 ## Local Development Setup (5 minutes)
@@ -58,24 +58,26 @@ That's it! Your bot is running in containers with PostgreSQL.
 
 ## Features to Try
 
-1. **Set an Alert**
-   - Send `/start`
-   - Choose a city
-   - Enter AQI threshold (e.g., 100)
-
-2. **Check Current Air Quality**
+1. **Check Air Quality**
    - Send `/aqi`
    - Choose a city or view all
+   - See AQI, pollutants, temperature, and health recommendations
 
-3. **View Your Alerts**
-   - Send `/my_alerts`
-
-4. **Change Language**
+2. **Change Language**
    - Send `/language`
    - Choose Uzbek, Russian, or English
 
-5. **Get Help**
+3. **Get Help**
    - Send `/help`
+   - Browse different topics
+
+## Caching
+
+The bot caches air quality data for 30 minutes per city:
+- First request fetches from API 🌐
+- Subsequent requests use cache ⚡
+- After 30 minutes, fresh data is fetched
+- This reduces API calls and improves speed
 
 ## Admin Bot (Optional)
 
@@ -84,7 +86,7 @@ If you want to monitor statistics:
 1. Create another bot with @BotFather
 2. Add `BOT_TOKEN_ADMIN` to `.env`
 3. Restart the bot
-4. Send `/stats`, `/users`, or `/alerts` to your admin bot
+4. Send `/stats` or `/users` to your admin bot
 
 ## Production Deployment
 
@@ -104,4 +106,3 @@ See [README.md](README.md) for detailed Heroku deployment instructions.
 
 **Need help?**
 Check the [README.md](README.md) for detailed documentation.
-

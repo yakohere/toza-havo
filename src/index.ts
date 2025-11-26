@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { createBot } from './bot';
 import { createAdminBot } from './admin';
-import AirQualityChecker from './core/airQualityChecker';
+import ThresholdMonitor from './core/thresholdMonitor';
 import { airQualityDb } from './db';
 
 if (process.env.NODE_ENV !== 'production') {
@@ -36,14 +36,16 @@ if (BOT_TOKEN_ADMIN) {
 async function startApplication(): Promise<void> {
   try {
     console.log('Starting Toza Havo Bot...');
+    console.log('💾 Cache enabled: 30 minutes per city');
+    console.log('🔔 Threshold alerts: 50, 100, 150, 200, 250, 300');
 
     const bot = createBot(BOT_TOKEN!);
 
-    const airQualityChecker = new AirQualityChecker(bot);
+    const thresholdMonitor = new ThresholdMonitor(bot);
 
-    console.log('🔄 Starting air quality checker service...');
-    airQualityChecker.start();
-    console.log('✅ Air quality checker started - monitoring every 10 minutes');
+    console.log('🔄 Starting threshold monitor service...');
+    thresholdMonitor.start();
+    console.log('✅ Threshold monitor started - checking every 10 minutes');
 
     console.log('🚀 Launching Telegram bot...');
     
@@ -79,15 +81,16 @@ async function startApplication(): Promise<void> {
       const { apiRateLimiter, telegramRateLimiter } = require('./core/rateLimiter');
       const { airQualityFeed } = require('./core/airQualityFeed');
 
-      const alerts = await airQualityDb.getAllAlerts();
+      const totalSubscribers = await airQualityDb.getTotalSubscribers();
 
       res.json({
         status: 'running',
         bot: 'Toza Havo',
         description: 'Air Quality Monitoring Bot for Uzbekistan',
-        airQualityChecker: airQualityChecker.getStatus(),
+        mode: 'threshold alerts with 30-minute cache',
+        thresholdMonitor: thresholdMonitor.getStatus(),
+        subscribers: totalSubscribers,
         performance: {
-          totalAlerts: alerts.length,
           rateLimits: {
             api: apiRateLimiter.getStats(),
             telegram: telegramRateLimiter.getStats(),
@@ -134,7 +137,7 @@ async function startApplication(): Promise<void> {
     const gracefulShutdown = (signal: string) => {
       console.log(`Received ${signal}, shutting down gracefully...`);
 
-      airQualityChecker.stop();
+      thresholdMonitor.stop();
       bot.stop(signal);
       if (adminBot) {
         adminBot.stop(signal);

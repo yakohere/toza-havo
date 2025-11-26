@@ -86,6 +86,24 @@ class AirQualityDatabase {
         )
       `);
 
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS user_subscriptions (
+          chatId BIGINT NOT NULL,
+          city TEXT NOT NULL,
+          subscribedAt TIMESTAMP NOT NULL,
+          PRIMARY KEY (chatId, city)
+        )
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS aqi_threshold_state (
+          city TEXT PRIMARY KEY,
+          currentAqi INTEGER NOT NULL,
+          lastThresholdCrossed INTEGER NOT NULL,
+          lastChecked TIMESTAMP NOT NULL
+        )
+      `);
+
       await client.query('CREATE INDEX IF NOT EXISTS idx_alerts_chatid ON air_quality_alerts(chatId)');
       await client.query('CREATE INDEX IF NOT EXISTS idx_alerts_city ON air_quality_alerts(city)');
       await client.query('CREATE INDEX IF NOT EXISTS idx_user_sessions_activity ON user_sessions(lastActivity)');
@@ -93,6 +111,8 @@ class AirQualityDatabase {
       await client.query('CREATE INDEX IF NOT EXISTS idx_analytics_eventtype ON analytics(eventType)');
       await client.query('CREATE INDEX IF NOT EXISTS idx_analytics_createdat ON analytics(createdAt)');
       await client.query('CREATE INDEX IF NOT EXISTS idx_cache_updated ON air_quality_cache(lastUpdated)');
+      await client.query('CREATE INDEX IF NOT EXISTS idx_subscriptions_city ON user_subscriptions(city)');
+      await client.query('CREATE INDEX IF NOT EXISTS idx_subscriptions_chatid ON user_subscriptions(chatId)');
 
       console.log('✅ PostgreSQL database initialized successfully with indexes');
     } catch (error) {
@@ -439,6 +459,110 @@ class AirQualityDatabase {
     } catch (error) {
       console.error('Failed to get cached air quality:', error);
       return null;
+    }
+  }
+
+  public async subscribeToCity(chatId: number, city: string): Promise<boolean> {
+    await this.ensureInit();
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO user_subscriptions (chatId, city, subscribedAt)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (chatId, city) DO NOTHING`,
+        [chatId, city, new Date().toISOString()]
+      );
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error('Failed to subscribe to city:', error);
+      return false;
+    }
+  }
+
+  public async unsubscribeFromCity(chatId: number, city: string): Promise<boolean> {
+    await this.ensureInit();
+    try {
+      const result = await this.pool.query(
+        'DELETE FROM user_subscriptions WHERE chatId = $1 AND city = $2',
+        [chatId, city]
+      );
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error('Failed to unsubscribe from city:', error);
+      return false;
+    }
+  }
+
+  public async getUserSubscriptions(chatId: number): Promise<string[]> {
+    await this.ensureInit();
+    try {
+      const result = await this.pool.query(
+        'SELECT city FROM user_subscriptions WHERE chatId = $1 ORDER BY subscribedAt',
+        [chatId]
+      );
+      return result.rows.map(row => row.city);
+    } catch (error) {
+      console.error('Failed to get user subscriptions:', error);
+      return [];
+    }
+  }
+
+  public async getSubscribersForCity(city: string): Promise<number[]> {
+    await this.ensureInit();
+    try {
+      const result = await this.pool.query(
+        'SELECT chatId FROM user_subscriptions WHERE city = $1',
+        [city]
+      );
+      return result.rows.map(row => Number(row.chatid));
+    } catch (error) {
+      console.error('Failed to get subscribers for city:', error);
+      return [];
+    }
+  }
+
+  public async getThresholdState(city: string): Promise<{ currentAqi: number; lastThresholdCrossed: number } | null> {
+    await this.ensureInit();
+    try {
+      const result = await this.pool.query(
+        'SELECT currentAqi, lastThresholdCrossed FROM aqi_threshold_state WHERE city = $1',
+        [city]
+      );
+      if (result.rows.length === 0) return null;
+      return {
+        currentAqi: result.rows[0].currentaqi,
+        lastThresholdCrossed: result.rows[0].lastthresholdcrossed
+      };
+    } catch (error) {
+      console.error('Failed to get threshold state:', error);
+      return null;
+    }
+  }
+
+  public async updateThresholdState(city: string, currentAqi: number, lastThresholdCrossed: number): Promise<boolean> {
+    await this.ensureInit();
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO aqi_threshold_state (city, currentAqi, lastThresholdCrossed, lastChecked)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (city) DO UPDATE SET
+         currentAqi = $2, lastThresholdCrossed = $3, lastChecked = $4`,
+        [city, currentAqi, lastThresholdCrossed, new Date().toISOString()]
+      );
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error('Failed to update threshold state:', error);
+      return false;
+    }
+  }
+
+  public async getTotalSubscribers(): Promise<number> {
+    await this.ensureInit();
+    try {
+      const result = await this.pool.query('SELECT COUNT(DISTINCT chatId) as count FROM user_subscriptions');
+      return parseInt(result.rows[0]?.count || '0');
+    } catch (error) {
+      console.error('Failed to get total subscribers:', error);
+      return 0;
     }
   }
 

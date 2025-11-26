@@ -1,7 +1,6 @@
 import { Telegraf } from 'telegraf';
 import { handleStats } from './handlers/stats';
 import { handleUsers } from './handlers/users';
-import { handleAlerts } from './handlers/alerts';
 import { handleAdminHelp } from './handlers/help';
 
 export function createAdminBot(token: string): Telegraf {
@@ -9,7 +8,6 @@ export function createAdminBot(token: string): Telegraf {
 
   adminBot.command('stats', handleStats);
   adminBot.command('users', handleUsers);
-  adminBot.command('alerts', handleAlerts);
   adminBot.command('help', handleAdminHelp);
   adminBot.command('start', handleAdminHelp);
 

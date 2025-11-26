@@ -8,7 +8,8 @@ export async function handleAqiCheck(ctx: Context): Promise<void> {
   try {
     const chatId = ctx.chat?.id;
     if (!chatId) {
-      await ctx.reply('❌ Unable to identify user.');
+      const translations = await localizationService.getTranslations(0);
+      await ctx.reply(translations.unableToIdentify);
       return;
     }
 
@@ -37,7 +38,8 @@ export async function handleAqiCheck(ctx: Context): Promise<void> {
 
   } catch (error) {
     console.error('Error in AQI check handler:', error);
-    await ctx.reply('Something went wrong. Please try again.');
+    const translations = await localizationService.getTranslations(ctx.chat?.id || 0);
+    await ctx.reply(translations.somethingWentWrong);
   }
 }
 
@@ -50,7 +52,8 @@ export async function handleAqiCallback(ctx: Context): Promise<void> {
 
     const chatId = ctx.chat?.id;
     if (!chatId) {
-      await ctx.answerCbQuery('Unable to identify user');
+      const translations = await localizationService.getTranslations(0);
+      await ctx.answerCbQuery(translations.unableToIdentify);
       return;
     }
 
@@ -59,7 +62,7 @@ export async function handleAqiCallback(ctx: Context): Promise<void> {
 
     if (callbackData === 'aqi_all') {
       await ctx.answerCbQuery();
-      await ctx.editMessageText(`${translations.fetchingAqi}...`);
+      await ctx.editMessageText(translations.fetchingAqi);
 
       const cities = Object.keys(UZBEKISTAN_CITIES) as UzbekistanCity[];
       let message = `${translations.currentAqiLevels}\n\n`;
@@ -78,7 +81,6 @@ export async function handleAqiCallback(ctx: Context): Promise<void> {
         }
       }
 
-      message += `\n${translations.setAlertForAqi}`;
       await ctx.editMessageText(message);
       return;
     }
@@ -86,17 +88,17 @@ export async function handleAqiCallback(ctx: Context): Promise<void> {
     const city = callbackData.replace('aqi_', '') as UzbekistanCity;
 
     if (!airQualityFeed.validateCity(city)) {
-      await ctx.answerCbQuery('Invalid city');
+      await ctx.answerCbQuery(translations.somethingWentWrong);
       return;
     }
 
     await ctx.answerCbQuery();
-    await ctx.editMessageText(`⏳ ${translations.fetchingAqi} ${translations.cities[city]}...`);
+    await ctx.editMessageText(`⏳ ${translations.fetchingAqi}`);
 
     const data = await airQualityFeed.getAirQualityForCity(city);
 
     if (!data) {
-      await ctx.editMessageText(`${translations.unableToFetchCityAqi} ${translations.cities[city]}`);
+      await ctx.editMessageText(translations.unavailable);
       return;
     }
 
@@ -111,14 +113,14 @@ export async function handleAqiCallback(ctx: Context): Promise<void> {
       `${translations.temperature} ${data.current.weather.tp}°C\n` +
       `${translations.humidity} ${data.current.weather.hu}%\n\n` +
       `${translations.healthImplication}\n${aqiLevel.healthImplication[lang]}\n\n` +
-      `${translations.recommendation}\n${aqiLevel.cautionaryStatement[lang]}\n\n` +
-      `${translations.setAlertForAqi}`;
+      `${translations.recommendation}\n${aqiLevel.cautionaryStatement[lang]}`;
 
     await ctx.editMessageText(message);
 
   } catch (error) {
     console.error('Error in AQI callback:', error);
-    await ctx.answerCbQuery('Error fetching AQI');
+    const translations = await localizationService.getTranslations(ctx.chat?.id || 0);
+    await ctx.answerCbQuery(translations.somethingWentWrong);
   }
 }
 
